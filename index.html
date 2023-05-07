@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Single HTML Space Shooter</title>
+    <style>
+      body {
+        background-color: black;
+        color: white;
+        font-family: monospace;
+        font-size: 16px;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      // Define variables
+      var canvas = document.createElement("canvas");
+      var ctx = canvas.getContext("2d");
+      var width = window.innerWidth;
+      var height = window.innerHeight;
+      var player = {
+        x: width / 2,
+        y: height / 2,
+        size: 3,
+        speed: 5,
+      };
+      var bullets = [];
+      var enemies = [];
+      var enemyTimer = 0;
+      var score = 0;
+      var gameover = false;
+      var shootCounter = 0;
+
+      // Set up canvas
+      canvas.width = width;
+      canvas.height = height;
+      document.body.appendChild(canvas);
+
+      // Create UI text element for controls
+      var uiText = document.createElement("div");
+      uiText.innerHTML = "WASD or arrows to move - SPACE BAR to shoot";
+      uiText.style.position = "absolute";
+      uiText.style.bottom = "10px";
+      uiText.style.left = "10px";
+      document.body.appendChild(uiText);
+
+      // Create game title element
+      var titleText = document.createElement("div");
+      titleText.innerHTML = "Single HTML Space Shooter";
+      titleText.style.position = "absolute";
+      titleText.style.top = "10px";
+      titleText.style.right = "10px";
+      document.body.appendChild(titleText);
+
+      // Update function
+      function update() {
+        // Move player
+        if (keys[87] || keys[38]) {
+          // W or up arrow
+          player.y -= player.speed;
+        }
+        if (keys[83] || keys[40]) {
+          // S or down arrow
+          player.y += player.speed;
+        }
+        if (keys[65] || keys[37]) {
+          // A or left arrow
+          player.x -= player.speed;
+        }
+        if (keys[68] || keys[39]) {
+          // D or right arrow
+          player.x += player.speed;
+        }
+
+        // Keep player on screen
+        if (player.y < player.size * 10) {
+          player.y = player.size * 10;
+        }
+        if (player.y > height - player.size * 10) {
+          player.y = height - player.size * 10;
+        }
+        if (player.x < player.size * 10) {
+          player.x = player.size * 10;
+        }
+        if (player.x > width - player.size * 10) {
+          player.x = width - player.size * 10;
+        }
+
+        // Shoot bullet every nineth time
+        if (keys[32] && shootCounter % 9 === 0) {
+          // Spacebar
+          var bullet = {
+            x: player.x,
+            y: player.y,
+            size: 1,
+            speed: 10,
+          };
+          bullets.push(bullet);
+        }
+
+        // Increment shootCounter
+        shootCounter++;
+
+        // Move bullets
+        for (var i = 0; i < bullets.length; i++) {
+          bullets[i].x += bullets[i].speed;
+          if (bullets[i].x > width) {
+            bullets.splice(i, 1);
+            i--;
+          }
+        }
+
+        // Spawn enemies
+        enemyTimer++;
+        if (enemyTimer > 50) {
+          var enemy = {
+            x: width,
+            y: Math.random() * height,
+            size: Math.floor(Math.random() * 3) + 1,
+            speed: Math.random() * 5 + 1,
+          };
+          enemies.push(enemy);
+          enemyTimer = 0;
+        }
+
+        // Move enemies
+        for (var i = 0; i < enemies.length; i++) {
+          enemies[i].x -= enemies[i].speed;
+          if (enemies[i].x < -enemies[i].size * 10) {
+            enemies.splice(i, 1);
+            i--;
+          }
+        }
+
+        // Check for collisions
+        for (var i = 0; i < enemies.length; i++) {
+          if (
+            enemies[i].x < player.x + player.size * 10 &&
+            enemies[i].x + enemies[i].size * 10 > player.x &&
+            enemies[i].y < player.y + player.size * 10 &&
+            enemies[i].y + enemies[i].size * 10 > player.y
+          ) {
+            gameover = true;
+          }
+          for (var j = 0; j < bullets.length; j++) {
+            if (
+              bullets[j].x < enemies[i].x + enemies[i].size * 10 &&
+              bullets[j].x + bullets[j].size * 10 > enemies[i].x &&
+              bullets[j].y < enemies[i].y + enemies[i].size * 10 &&
+              bullets[j].y + bullets[j].size * 10 > enemies[i].y
+            ) {
+              bullets.splice(j, 1);
+              j--;
+              score += enemies[i].size * 10;
+              enemies.splice(i, 1);
+              i--;
+              break;
+            }
+          }
+        }
+      }
+      // Draw function
+      function draw() {
+        // Clear canvas
+        ctx.clearRect(0, 0, width, height);
+
+        // Draw player
+        ctx.fillStyle = "white";
+        ctx.fillRect(
+          player.x - player.size * 10,
+          player.y - player.size * 10,
+          player.size * 20,
+          player.size * 20
+        );
+
+        // Draw bullets
+        ctx.fillStyle = "yellow";
+        for (var i = 0; i < bullets.length; i++) {
+          ctx.fillRect(
+            bullets[i].x,
+            bullets[i].y,
+            bullets[i].size * 10,
+            bullets[i].size * 10
+          );
+        }
+
+        // Draw enemies
+        ctx.fillStyle = "red";
+        for (var i = 0; i < enemies.length; i++) {
+          ctx.fillRect(
+            enemies[i].x,
+            enemies[i].y,
+            enemies[i].size * 10,
+            enemies[i].size * 10
+          );
+        }
+
+        // Calculate font size based on screen width
+        var fontSize = Math.min(Math.max(Math.round(width / 30), 12), 48);
+
+        // Set font size for score text
+        ctx.font = fontSize + "px Arial";
+        ctx.fillStyle = "white";
+        ctx.fillText("Score: " + score, 10, fontSize + 10);
+
+        // Set font size for game over text
+        if (gameover) {
+          ctx.font = fontSize * 2 + "px Arial";
+          ctx.fillStyle = "white";
+          var gameoverTextWidth = ctx.measureText("GAME OVER").width;
+          ctx.fillText(
+            "GAME OVER",
+            width / 2 - gameoverTextWidth / 2,
+            height / 2
+          );
+        }
+      }
+
+      // Keyboard input
+      var keys = {};
+      window.addEventListener("keydown", function (e) {
+        keys[e.keyCode] = true;
+      });
+      window.addEventListener("keyup", function (e) {
+        delete keys[e.keyCode];
+      });
+
+      // Game loop
+      function loop() {
+        update();
+        draw();
+        if (!gameover) {
+          requestAnimationFrame(loop);
+        }
+      }
+      loop();
+    </script>
+  </body>
+</html>
