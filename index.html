@@ -1,202 +1,257 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Enhanced Single HTML Space Shooter</title>
     <style>
-        body {
-            background-color: black;
-            color: white;
-            font-family: monospace;
-            font-size: 16px;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
+      body {
+        background-color: black;
+        color: white;
+        font-family: monospace;
+        font-size: 16px;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
     </style>
-</head>
-<body>
-<script>
-var canvas = document.createElement("canvas");
-var ctx = canvas.getContext("2d");
-var width = window.innerWidth;
-var height = window.innerHeight;
-canvas.width = width;
-canvas.height = height;
-document.body.appendChild(canvas);
+  </head>
+  <body>
+    <script>
+      var canvas = document.createElement("canvas");
+      var ctx = canvas.getContext("2d");
+      var width = window.innerWidth;
+      var height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      document.body.appendChild(canvas);
 
-var player = { x: width / 2, y: height - 100, size: 3, speed: 5, shootingSpeed: 9 };
-var bullets = [];
-var enemies = [];
-var powerUps = [];
-var enemyTimer = 0;
-var powerUpTimer = 0;
-var score = 0;
-var highScore = localStorage.getItem("highScore") || 0;
-var gameover = false;
-var shootCounter = 0;
-var keys = {};
-var multiplier = 1;
+      var player = {
+        x: width / 2,
+        y: height - 100,
+        size: 3,
+        speed: 5,
+        shootingSpeed: 9,
+      };
+      var bullets = [];
+      var enemies = [];
+      var powerUps = [];
+      var enemyTimer = 0;
+      var powerUpTimer = 0;
+      var score = 0;
+      var highScore = localStorage.getItem("highScore") || 0;
+      var gameover = false;
+      var shootCounter = 0;
+      var keys = {};
+      var multiplier = 1;
 
-// UI Elements
-var uiText = document.createElement("div");
-uiText.innerHTML = "WASD or arrows to move - SPACE BAR to shoot - P to pause - R to restart";
-uiText.style.position = "absolute";
-uiText.style.bottom = "10px";
-uiText.style.left = "10px";
-document.body.appendChild(uiText);
+      // UI Elements
+      var uiText = document.createElement("div");
+      uiText.innerHTML =
+        "WASD or arrows to move - SPACE BAR to shoot - P to pause - R to restart";
+      uiText.style.position = "absolute";
+      uiText.style.bottom = "10px";
+      uiText.style.left = "10px";
+      document.body.appendChild(uiText);
 
-// Keyboard input
-window.addEventListener("keydown", function (e) {
-    keys[e.keyCode] = true;
-    if(gameover && e.keyCode === 82) { // R to restart
-        restartGame();
-    }
-    if(e.keyCode === 80) { // P to pause
-        pauseGame();
-    }
-});
-window.addEventListener("keyup", function (e) {
-    delete keys[e.keyCode];
-});
+      // Keyboard input
+      window.addEventListener("keydown", function (e) {
+        keys[e.keyCode] = true;
+        if (gameover && e.keyCode === 82) {
+          // R to restart
+          restartGame();
+        }
+        if (e.keyCode === 80) {
+          // P to pause
+          pauseGame();
+        }
+      });
+      window.addEventListener("keyup", function (e) {
+        delete keys[e.keyCode];
+      });
 
-function update() {
-    if (keys[87] || keys[38]) { player.y -= player.speed; }
-    if (keys[83] || keys[40]) { player.y += player.speed; }
-    if (keys[65] || keys[37]) { player.x -= player.speed; }
-    if (keys[68] || keys[39]) { player.x += player.speed; }
+      function update() {
+        if (keys[87] || keys[38]) {
+          player.y -= player.speed;
+        }
+        if (keys[83] || keys[40]) {
+          player.y += player.speed;
+        }
+        if (keys[65] || keys[37]) {
+          player.x -= player.speed;
+        }
+        if (keys[68] || keys[39]) {
+          player.x += player.speed;
+        }
 
-    // Keep player on screen
-    player.x = Math.max(Math.min(player.x, width - player.size * 10), player.size * 10);
-    player.y = Math.max(Math.min(player.y, height - player.size * 10), player.size * 10);
+        // Keep player on screen
+        player.x = Math.max(
+          Math.min(player.x, width - player.size * 10),
+          player.size * 10
+        );
+        player.y = Math.max(
+          Math.min(player.y, height - player.size * 10),
+          player.size * 10
+        );
 
-    // Shooting
-    if (keys[32] && shootCounter % player.shootingSpeed === 0) {
-        bullets.push({ x: player.x, y: player.y, size: 1, speed: 10 });
-    }
-    shootCounter++;
+        // Shooting
+        if (keys[32] && shootCounter % player.shootingSpeed === 0) {
+          bullets.push({ x: player.x, y: player.y, size: 1, speed: 10 });
+        }
+        shootCounter++;
 
-    // Bullets
-    bullets.forEach((bullet, i) => {
-        bullet.x += bullet.speed;
-        if (bullet.x > width) bullets.splice(i, 1);
-    });
+        // Bullets
+        bullets.forEach((bullet, i) => {
+          bullet.x += bullet.speed;
+          if (bullet.x > width) bullets.splice(i, 1);
+        });
 
-    // Enemies
-    if (score % 100 === 0) { // Increase difficulty
-        enemyTimer -= 0.05;
-    }
-    enemyTimer++;
-    if (enemyTimer > Math.max(20, 50 - Math.floor(score / 100))) {
-        enemies.push({ x: width, y: Math.random() * height, size: Math.floor(Math.random() * 3) + 1, speed: Math.random() * 2 + 1 });
-        enemyTimer = 0;
-    }
-    enemies.forEach((enemy, i) => {
-        enemy.x -= enemy.speed;
-        if (enemy.x < -enemy.size * 10) enemies.splice(i, 1);
-    });
+        // Enemies
+        if (score % 100 === 0) {
+          // Increase difficulty
+          enemyTimer -= 0.05;
+        }
+        enemyTimer++;
+        if (enemyTimer > Math.max(20, 50 - Math.floor(score / 100))) {
+          enemies.push({
+            x: width,
+            y: Math.random() * height,
+            size: Math.floor(Math.random() * 3) + 1,
+            speed: Math.random() * 2 + 1,
+          });
+          enemyTimer = 0;
+        }
+        enemies.forEach((enemy, i) => {
+          enemy.x -= enemy.speed;
+          if (enemy.x < -enemy.size * 10) enemies.splice(i, 1);
+        });
 
-    // Power-ups
-    powerUpTimer++;
-    if (powerUpTimer > 500) { // Spawn power-up
-        powerUps.push({ x: Math.random() * width, y: Math.random() * height, size: 2, effect: "shootFaster", duration: 500 });
-        powerUpTimer = 0;
-    }
-    powerUps.forEach((powerUp, i) => {
-        if (isColliding(player, powerUp)) {
+        // Power-ups
+        powerUpTimer++;
+        if (powerUpTimer > 500) {
+          // Spawn power-up
+          powerUps.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            size: 2,
+            effect: "shootFaster",
+            duration: 500,
+          });
+          powerUpTimer = 0;
+        }
+        powerUps.forEach((powerUp, i) => {
+          if (isColliding(player, powerUp)) {
             applyPowerUp(powerUp.effect);
             powerUps.splice(i, 1);
-        }
-    });
+          }
+        });
 
-    // Collisions
-    enemies.forEach((enemy, i) => {
-        if (isColliding(player, enemy)) {
+        // Collisions
+        enemies.forEach((enemy, i) => {
+          if (isColliding(player, enemy)) {
             gameover = true;
             if (score > highScore) {
-                localStorage.setItem("highScore", score);
-                highScore = score;
+              localStorage.setItem("highScore", score);
+              highScore = score;
             }
-        }
-        bullets.forEach((bullet, j) => {
+          }
+          bullets.forEach((bullet, j) => {
             if (isColliding(bullet, enemy)) {
-                bullets.splice(j, 1);
-                enemies.splice(i, 1);
-                score += enemy.size * 10 * multiplier;
-                multiplier += 0.1; // Increase score multiplier
+              bullets.splice(j, 1);
+              enemies.splice(i, 1);
+              score += enemy.size * 10 * multiplier;
+              multiplier += 0.1; // Increase score multiplier
             }
+          });
         });
-    });
-}
+      }
 
-function draw() {
-    ctx.clearRect(0, 0, width, height);
-    drawEntity(player, "white");
-    bullets.forEach(bullet => drawEntity(bullet, "yellow"));
-    enemies.forEach(enemy => drawEntity(enemy, "red"));
-    powerUps.forEach(powerUp => drawEntity(powerUp, "blue"));
-    drawText(`Score: ${score} || Multiplier: ${multiplier} || High Score: ${highScore}`, 10, 30);
-    if (gameover) {
-        drawText("GAME OVER - Press R to Restart", width / 2, height / 2, "center");
-    }
-}
+      function draw() {
+        ctx.clearRect(0, 0, width, height);
+        drawEntity(player, "white");
+        bullets.forEach((bullet) => drawEntity(bullet, "yellow"));
+        enemies.forEach((enemy) => drawEntity(enemy, "red"));
+        powerUps.forEach((powerUp) => drawEntity(powerUp, "blue"));
+        drawText(
+          `Score: ${score} || Multiplier: ${multiplier} || High Score: ${highScore}`,
+          10,
+          30
+        );
+        if (gameover) {
+          drawText(
+            "GAME OVER - Press R to Restart",
+            width / 2,
+            height / 2,
+            "center"
+          );
+        }
+      }
 
-function drawEntity(entity, color) {
-    ctx.fillStyle = color;
-    ctx.fillRect(entity.x - entity.size * 5, entity.y - entity.size * 5, entity.size * 10, entity.size * 10);
-}
+      function drawEntity(entity, color) {
+        ctx.fillStyle = color;
+        ctx.fillRect(
+          entity.x - entity.size * 5,
+          entity.y - entity.size * 5,
+          entity.size * 10,
+          entity.size * 10
+        );
+      }
 
-function drawText(text, x, y, align = "left") {
-    ctx.fillStyle = "white";
-    ctx.font = "20px Arial";
-    ctx.textAlign = align;
-    ctx.fillText(text, x, y);
-}
+      function drawText(text, x, y, align = "left") {
+        ctx.fillStyle = "white";
+        ctx.font = "20px Arial";
+        ctx.textAlign = align;
+        ctx.fillText(text, x, y);
+      }
 
-function isColliding(obj1, obj2) {
-    return obj1.x < obj2.x + obj2.size * 10 && obj1.x + obj1.size * 10 > obj2.x && obj1.y < obj2.y + obj2.size * 10 && obj1.y + obj1.size * 10 > obj2.y;
-}
+      function isColliding(obj1, obj2) {
+        return (
+          obj1.x < obj2.x + obj2.size * 10 &&
+          obj1.x + obj1.size * 10 > obj2.x &&
+          obj1.y < obj2.y + obj2.size * 10 &&
+          obj1.y + obj1.size * 10 > obj2.y
+        );
+      }
 
-function applyPowerUp(effect) {
-    switch (effect) {
-        case "shootFaster":
+      function applyPowerUp(effect) {
+        switch (effect) {
+          case "shootFaster":
             player.shootingSpeed = 4;
             setTimeout(() => {
-                player.shootingSpeed = 9; // Reset shooting speed after duration
+              player.shootingSpeed = 9; // Reset shooting speed after duration
             }, 5000);
             break;
-    }
-}
+        }
+      }
 
-function restartGame() {
-    score = 0;
-    gameover = false;
-    player = { ...player, x: width / 2, y: height - 100 };
-    bullets = [];
-    enemies = [];
-    powerUps = [];
-    multiplier = 1;
-    loop();
-}
-
-function pauseGame() {
-    // This is a simple toggle pause. It does not actually pause but stops or resumes the game loop.
-    gameover = !gameover;
-    if (!gameover) {
+      function restartGame() {
+        score = 0;
+        gameover = false;
+        player = { ...player, x: width / 2, y: height - 100 };
+        bullets = [];
+        enemies = [];
+        powerUps = [];
+        multiplier = 1;
         loop();
-    }
-}
+      }
 
-function loop() {
-    if (!gameover) {
-        update();
-        draw();
-        requestAnimationFrame(loop);
-    }
-}
+      function pauseGame() {
+        // This is a simple toggle pause. It does not actually pause but stops or resumes the game loop.
+        gameover = !gameover;
+        if (!gameover) {
+          loop();
+        }
+      }
 
-loop();
-</script>
-</body>
+      function loop() {
+        if (!gameover) {
+          update();
+          draw();
+          requestAnimationFrame(loop);
+        }
+      }
+
+      loop();
+    </script>
+  </body>
 </html>
